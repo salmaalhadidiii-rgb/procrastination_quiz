@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Procrastination Unmasked</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0c0a;
+    --surface: #1a1714;
+    --card: #221f1b;
+    --accent: #e8c97a;
+    --accent2: #c96b4a;
+    --text: #f0ebe2;
+    --muted: #7a7368;
+    --correct: #5fba7d;
+    --wrong: #e05c5c;
+    --border: rgba(232,201,122,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+
+  /* Atmospheric background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 20% 10%, rgba(201,107,74,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 60% at 80% 90%, rgba(232,201,122,0.07) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Noise texture */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 720px;
+    padding: 40px 24px 80px;
+  }
+
+  /* ── Header ── */
+  header {
+    text-align: center;
+    margin-bottom: 56px;
+    animation: fadeDown 0.8s ease both;
+  }
+
+  .label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+    display: block;
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.4rem, 6vw, 4rem);
+    font-weight: 900;
+    line-height: 1.05;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+
+  h1 em {
+    color: var(--accent);
+    font-style: italic;
+  }
+
+  .subtitle {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    margin-top: 8px;
+  }
+
+  /* ── Progress ── */
+  .progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 36px;
+    animation: fadeDown 0.8s 0.1s ease both;
+  }
+
+  .progress-bar {
+    flex: 1;
+    height: 2px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    border-radius: 1px;
+    transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .progress-text {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    min-width: 52px;
+    text-align: right;
+  }
+
+  /* ── Quiz card ── */
+  .quiz-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 40px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .quiz-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.4;
+  }
+
+  .q-number {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--accent2);
+    margin-bottom: 20px;
+    display: block;
+  }
+
+  .q-text {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+    line-height: 1.55;
+    color: var(--text);
+    margin-bottom: 32px;
+    font-weight: 400;
+  }
+
+  .q-tag {
+    display: inline-block;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 2px;
+    margin-bottom: 24px;
+  }
+
+  /* ── Options ── */
+  .options {
+    display: grid;
+    gap: 10px;
+  }
+
+  .option {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 3px;
+    padding: 16px 20px;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--text);
+    text-align: left;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    line-height: 1.5;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .option:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: rgba(232,201,122,0.05);
+    transform: translateX(4px);
+  }
+
+  .option:disabled { cursor: default; }
+
+  .opt-letter {
+    min-width: 22px;
+    height: 22px;
+    border: 1px solid var(--muted);
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: var(--muted);
+    flex-shrink: 0;
+    margin-top: 1px;
+    transition: all 0.2s;
+  }
+
+  .option.correct { border-color: var(--correct); background: rgba(95,186,125,0.08); }
+  .option.correct .opt-letter { background: var(--correct); border-color: var(--correct); color: #0e0c0a; }
+  .option.wrong { border-color: var(--wrong); background: rgba(224,92,92,0.08); }
+  .option.wrong .opt-letter { background: var(--wrong); border-color: var(--wrong); color: #fff; }
+  .option.dimmed { opacity: 0.35; }
+
+  /* ── Feedback ── */
+  .feedback {
+    margin-top: 20px;
+    padding: 20px 24px;
+    border-left: 2px solid var(--accent);
+    background: rgba(232,201,122,0.04);
+    font-size: 13px;
+    line-height: 1.7;
+    color: #c8c0b0;
+    border-radius: 0 3px 3px 0;
+    display: none;
+    animation: fadeUp 0.3s ease both;
+  }
+
+  .feedback.show { display: block; }
+  .feedback strong { color: var(--accent); font-weight: 500; }
+
+  /* ── Navigation ── */
+  .nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 24px;
+  }
+
+  .score-badge {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  .score-badge span { color: var(--accent); }
+
+  .btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 12px 28px;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+    display: none;
+  }
+
+  .btn:hover { background: var(--accent); color: var(--bg); }
+  .btn.show { display: block; }
+
+  /* ── Results screen ── */
+  .results {
+    display: none;
+    text-align: center;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .results.show { display: block; }
+
+  .results-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 56px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .results-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+  }
+
+  .big-score {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(4rem, 12vw, 7rem);
+    font-weight: 900;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .score-label {
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 32px;
+  }
+
+  .result-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+
+  .result-desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.8;
+    max-width: 480px;
+    margin: 0 auto 40px;
+  }
+
+  .result-desc strong { color: var(--text); }
+
+  .breakdown {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 32px 0;
+    text-align: left;
+  }
+
+  .breakdown-item {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 3px;
+    padding: 16px;
+  }
+
+  .breakdown-item .bi-label { font-size: 9px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+  .breakdown-item .bi-val { font-family: 'Playfair Display', serif; font-size: 1.8rem; color: var(--accent); font-weight: 700; }
+  .breakdown-item .bi-sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  .restart-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    padding: 14px 36px;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.25s;
+    margin-top: 8px;
+  }
+
+  .restart-btn:hover { background: var(--accent); color: var(--bg); }
+
+  /* ── Intro screen ── */
+  .intro {
+    text-align: center;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .intro-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 56px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .intro-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+  }
+
+  .intro-icon {
+    font-size: 3rem;
+    margin-bottom: 24px;
+    display: block;
+  }
+
+  .intro h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    margin-bottom: 16px;
+    font-weight: 700;
+  }
+
+  .intro p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.8;
+    max-width: 480px;
+    margin: 0 auto 32px;
+  }
+
+  .intro-stats {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin: 28px 0 36px;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  .intro-stats span { color: var(--accent); font-family: 'Playfair Display', serif; font-size: 1.4rem; display: block; margin-bottom: 4px; }
+
+  .start-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    padding: 16px 44px;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.25s;
+    font-weight: 500;
+  }
+
+  .start-btn:hover { background: #f0d88a; transform: translateY(-2px); }
+
+  /* ── Category legend ── */
+  .cat-legend {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 24px;
+  }
+
+  .cat-pill {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 2px;
+    border: 1px solid;
+  }
+
+  .cat-myth { border-color: rgba(201,107,74,0.5); color: #c96b4a; background: rgba(201,107,74,0.07); }
+  .cat-type { border-color: rgba(232,201,122,0.5); color: #e8c97a; background: rgba(232,201,122,0.07); }
+
+  /* ── Animations ── */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .shimmer {
+    animation: pulse 2s infinite;
+  }
+
+  /* Divider */
+  .divider {
+    width: 40px;
+    height: 1px;
+    background: var(--accent);
+    margin: 24px auto;
+    opacity: 0.4;
+  }
+
+  @media(max-width:500px) {
+    .quiz-card { padding: 28px 20px; }
+    .breakdown { grid-template-columns: 1fr 1fr; }
+    .intro-card { padding: 36px 20px; }
+    .results-card { padding: 36px 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <header>
+    <span class="label">✦ Psychology Quiz ✦</span>
+    <h1>Procrastination<br><em>Unmasked</em></h1>
+    <p class="subtitle">Myths · Types · Science</p>
+  </header>
+
+  <!-- INTRO SCREEN -->
+  <div class="intro" id="intro">
+    <div class="intro-card">
+      <span class="intro-icon">⏳</span>
+      <h2>Do you know your procrastination?</h2>
+      <p>Test your knowledge of the common <strong style="color:var(--accent2)">myths</strong> people believe about procrastination and learn to identify the <strong style="color:var(--accent)">six procrastinator types</strong> psychologists have identified.</p>
+      <div class="intro-stats">
+        <div><span>12</span>questions</div>
+        <div><span>2</span>categories</div>
+        <div><span>∞</span>insight</div>
+      </div>
+      <div class="cat-legend">
+        <div class="cat-pill cat-myth">Myth Busting</div>
+        <div class="cat-pill cat-type">Type ID</div>
+      </div>
+      <div class="divider"></div>
+      <button class="start-btn" onclick="startQuiz()">Begin the Quiz →</button>
+    </div>
+  </div>
+
+  <!-- QUIZ SCREEN -->
+  <div id="quiz" style="display:none;">
+    <div class="progress-wrap">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      <div class="progress-text" id="progressText">0 / 12</div>
+    </div>
+
+    <div class="quiz-card" id="quizCard">
+      <span class="q-number" id="qNumber">QUESTION 01</span>
+      <div class="q-tag" id="qTag">myth</div>
+      <p class="q-text" id="qText"></p>
+      <div class="options" id="optionsContainer"></div>
+      <div class="feedback" id="feedback"></div>
+    </div>
+
+    <div class="nav">
+      <div class="score-badge">Score: <span id="scoreDisplay">0</span></div>
+      <button class="btn" id="nextBtn" onclick="nextQuestion()">Next →</button>
+    </div>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <div class="results" id="results">
+    <div class="results-card">
+      <div class="big-score" id="finalScore"></div>
+      <div class="score-label">out of 12</div>
+      <div class="result-title" id="resultTitle"></div>
+      <p class="result-desc" id="resultDesc"></p>
+
+      <div class="breakdown" id="breakdown">
+        <div class="breakdown-item">
+          <div class="bi-label">Myths Busted</div>
+          <div class="bi-val" id="mythScore"></div>
+          <div class="bi-sub">out of 6</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="bi-label">Types ID'd</div>
+          <div class="bi-val" id="typeScore"></div>
+          <div class="bi-sub">out of 6</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="bi-label">Accuracy</div>
+          <div class="bi-val" id="pctScore"></div>
+          <div class="bi-sub">correct</div>
+        </div>
+      </div>
+
+      <button class="restart-btn" onclick="restartQuiz()">↺ Try Again</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const questions = [
+  // ── MYTH BUSTING (6 questions) ──
+  {
+    category: "myth",
+    text: "\"Procrastinators are just lazy people who don't want to work.\" — True or False?",
+    options: [
+      "True — they simply lack motivation and discipline",
+      "False — procrastination is primarily an emotion-regulation problem, not a laziness issue",
+      "True — they choose leisure over responsibility",
+      "False — procrastination means someone is a perfectionist, not lazy"
+    ],
+    correct: 1,
+    explanation: "<strong>Myth busted!</strong> Research by Dr. Fuschia Sirois and Dr. Timothy Pychyl shows procrastination is fundamentally about managing negative emotions (anxiety, self-doubt, boredom) associated with a task — not laziness. Lazy people don't mind not doing things; procrastinators often feel intense guilt and stress while avoiding."
+  },
+  {
+    category: "myth",
+    text: "\"Working under pressure helps some people do their best work, so procrastinating until a deadline is a valid strategy.\"",
+    options: [
+      "True — deadline pressure genuinely boosts performance for many people",
+      "False — people believe they perform better under pressure but studies show quality actually declines",
+      "True — adrenaline from urgency improves focus and creativity",
+      "False — but it is okay if it makes you feel more motivated"
+    ],
+    correct: 1,
+    explanation: "<strong>Myth busted!</strong> Studies consistently show that work produced under last-minute pressure is lower quality. People confuse the feeling of heightened focus (stress arousal) with actual peak performance. The 'I work better under pressure' belief is largely a self-justifying narrative."
+  },
+  {
+    category: "myth",
+    text: "\"Procrastination only affects people who are disorganized. If you use planners and to-do lists, you won't procrastinate.\"",
+    options: [
+      "True — organizational systems eliminate the root cause of procrastination",
+      "False — highly organized people procrastinate too; systems address the symptom, not the cause",
+      "True — procrastination is just poor time management in disguise",
+      "False — but disorganized people definitely procrastinate more"
+    ],
+    correct: 1,
+    explanation: "<strong>Myth busted!</strong> Procrastination is driven by emotional avoidance, not organizational deficits. Highly organized, productive people can be chronic procrastinators on emotionally loaded tasks. To-do lists help with awareness but don't resolve the underlying anxiety or fear that causes avoidance."
+  },
+  {
+    category: "myth",
+    text: "\"Chronic procrastination is just a bad habit that can be fixed with enough willpower.\"",
+    options: [
+      "True — discipline and willpower are all that's needed to stop procrastinating",
+      "False — chronic procrastination is linked to executive dysfunction and sometimes ADHD; willpower alone is insufficient",
+      "True — people who can't stop procrastinating just haven't tried hard enough",
+      "False — procrastination can never be improved, it is a fixed personality trait"
+    ],
+    correct: 1,
+    explanation: "<strong>Myth busted!</strong> Chronic procrastination often correlates with executive function challenges, ADHD, depression, or anxiety. Relying on willpower frequently backfires — it depletes over time and can increase shame cycles. Effective interventions involve self-compassion, cognitive restructuring, and addressing emotional roots."
+  },
+  {
+    category: "myth",
+    text: "\"Procrastinating on small, unimportant tasks doesn't cause any real harm.\"",
+    options: [
+      "True — minor procrastination is harmless and normal",
+      "False — research links even everyday procrastination to higher stress, worse health outcomes, and financial losses",
+      "True — saving mental energy by skipping minor tasks is actually efficient",
+      "False — but only if you eventually complete the tasks"
+    ],
+    correct: 1,
+    explanation: "<strong>Myth busted!</strong> Studies by Sirois et al. found that chronic procrastination (even on minor tasks) correlates with higher stress, poorer immune function, worse sleep, and lower well-being. The accumulation of \"small\" avoidances creates significant background cognitive load and anxiety."
+  },
+  {
+    category: "myth",
+    text: "\"Procrastination is a modern problem caused by social media and digital distractions.\"",
+    options: [
+      "True — smartphones and apps have created a procrastination epidemic",
+      "False — procrastination has been documented throughout human history, described by ancient philosophers",
+      "True — before the internet, people always completed tasks on time",
+      "False — procrastination increased after the invention of television"
+    ],
+    correct: 1,
+    explanation: "<strong>Myth busted!</strong> Procrastination has been documented for millennia. Ancient Egyptian hieroglyphics describe it, Greek philosophers like Thucydides wrote about akrasia (acting against one's better judgment), and Roman consul Cicero called it hateful. Technology changes the distractions, not the underlying tendency."
+  },
+
+  // ── TYPE IDENTIFICATION (6 questions) ──
+  {
+    category: "type",
+    text: "Maya refuses to submit her report until it's absolutely perfect. She rewrites the introduction seven times, misses the deadline, and feels devastated by the imperfect submission. Which procrastinator type is Maya?",
+    options: [
+      "The Overwhelmed Procrastinator",
+      "The Perfectionist Procrastinator",
+      "The Thrill-Seeker Procrastinator",
+      "The Fearful Procrastinator"
+    ],
+    correct: 1,
+    explanation: "<strong>The Perfectionist Procrastinator</strong> delays because the fear of producing flawed work is greater than the fear of not finishing. They hold impossibly high standards and use 'not ready yet' as a protective shield. The irony: perfectionism guarantees the very imperfect outcome they feared."
+  },
+  {
+    category: "type",
+    text: "James knows exactly what needs to be done but intentionally waits until 11 PM before a morning deadline. He feels a rush of excitement and says, \"I do my best work when the pressure is on.\" What type is James?",
+    options: [
+      "The Perfectionist Procrastinator",
+      "The Overdoer Procrastinator",
+      "The Thrill-Seeker Procrastinator",
+      "The Dreamer Procrastinator"
+    ],
+    correct: 2,
+    explanation: "<strong>The Thrill-Seeker Procrastinator</strong> (also called the Deadliner) is addicted to the adrenaline of last-minute urgency. They are often stimulation-driven and may have tendencies toward ADHD or sensation-seeking. The deadline isn't the enemy — it's the point."
+  },
+  {
+    category: "type",
+    text: "Sarah has a long task list but spends three hours reorganizing her desk, color-coding folders, and making elaborate plans instead of actually starting the main project. Which type describes Sarah?",
+    options: [
+      "The Busybody Procrastinator",
+      "The Thrill-Seeker Procrastinator",
+      "The Self-Doubter Procrastinator",
+      "The Perfectionist Procrastinator"
+    ],
+    correct: 0,
+    explanation: "<strong>The Busybody Procrastinator</strong> stays perpetually active — but on lower-priority tasks. Busyness creates the illusion of productivity while the important work is avoided. This type often feels legitimately busy and struggles to identify themselves as procrastinating."
+  },
+  {
+    category: "type",
+    text: "Carlos wants to start a business, but whenever he thinks about it he feels overwhelmed by all the steps involved. He's been saying he'll start \"next month\" for two years. He's not lazy — he genuinely doesn't know where to begin. Which type fits Carlos?",
+    options: [
+      "The Dreamer Procrastinator",
+      "The Overwhelmed Procrastinator",
+      "The Perfectionist Procrastinator",
+      "The Thrill-Seeker Procrastinator"
+    ],
+    correct: 1,
+    explanation: "<strong>The Overwhelmed Procrastinator</strong> delays because the task feels too large, complex, or unclear to begin. They often lack a breakdown of steps and freeze at the starting point. The solution: make the first action so small it becomes impossible to avoid (e.g., 'write one sentence')."
+  },
+  {
+    category: "type",
+    text: "Nina has brilliant ideas and loves starting new projects, but rarely finishes any of them. She gets bored once the exciting novelty wears off and a new shiny idea appears. She's full of potential but her follow-through is poor. What type is Nina?",
+    options: [
+      "The Busybody Procrastinator",
+      "The Thrill-Seeker Procrastinator",
+      "The Dreamer Procrastinator",
+      "The Self-Doubter Procrastinator"
+    ],
+    correct: 2,
+    explanation: "<strong>The Dreamer Procrastinator</strong> lives in the exciting world of possibilities and struggles with the mundane reality of execution. They are often creative and visionary but resist the tedious middle of any project. They need systems that sustain motivation through the 'boring' implementation phase."
+  },
+  {
+    category: "type",
+    text: "Tom avoids starting projects because he secretly fears he won't be smart or capable enough to succeed. He tells himself he'll begin 'when he feels more confident.' This inner voice says, \"What if I try and fail and prove I'm not good enough?\" Which type is Tom?",
+    options: [
+      "The Overwhelmed Procrastinator",
+      "The Perfectionist Procrastinator",
+      "The Dreamer Procrastinator",
+      "The Self-Doubter Procrastinator"
+    ],
+    correct: 3,
+    explanation: "<strong>The Self-Doubter Procrastinator</strong> delays to protect their self-image. If they never fully try, they can never fully fail. This is a defense mechanism rooted in fear of inadequacy. Not starting = preserving the possibility of future success without risking present failure. Self-compassion practices are key for this type."
+  }
+];
+
+// Shuffle questions
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+let shuffled = [];
+let current = 0;
+let score = 0;
+let mythScore = 0;
+let typeScore = 0;
+let answered = false;
+
+const LETTERS = ['A', 'B', 'C', 'D'];
+
+function startQuiz() {
+  shuffled = shuffle(questions);
+  current = 0; score = 0; mythScore = 0; typeScore = 0; answered = false;
+  document.getElementById('intro').style.display = 'none';
+  document.getElementById('quiz').style.display = 'block';
+  loadQuestion();
+}
+
+function loadQuestion() {
+  answered = false;
+  const q = shuffled[current];
+  const pct = (current / shuffled.length) * 100;
+
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = `${current} / ${shuffled.length}`;
+  document.getElementById('qNumber').textContent = `QUESTION ${String(current + 1).padStart(2, '0')}`;
+  document.getElementById('qText').textContent = q.text;
+  document.getElementById('feedback').classList.remove('show');
+  document.getElementById('feedback').innerHTML = '';
+  document.getElementById('nextBtn').classList.remove('show');
+
+  const tag = document.getElementById('qTag');
+  tag.textContent = q.category === 'myth' ? '🔍 Myth Busting' : '🧠 Type Identification';
+  tag.className = `q-tag cat-${q.category}`;
+
+  const container = document.getElementById('optionsContainer');
+  container.innerHTML = '';
+
+  // Shuffle options while tracking correct answer
+  const indices = q.options.map((_, i) => i);
+  const shuffledIdx = shuffle(indices);
+  const newCorrectPos = shuffledIdx.indexOf(q.correct);
+
+  shuffledIdx.forEach((origIdx, pos) => {
+    const btn = document.createElement('button');
+    btn.className = 'option';
+    btn.innerHTML = `<span class="opt-letter">${LETTERS[pos]}</span>${q.options[origIdx]}`;
+    btn.onclick = () => selectAnswer(btn, pos, newCorrectPos, q, container);
+    container.appendChild(btn);
+  });
+
+  // Animate card
+  const card = document.getElementById('quizCard');
+  card.style.animation = 'none';
+  card.offsetHeight;
+  card.style.animation = 'fadeUp 0.4s ease both';
+}
+
+function selectAnswer(btn, chosen, correctPos, q, container) {
+  if (answered) return;
+  answered = true;
+
+  const buttons = container.querySelectorAll('.option');
+  buttons.forEach((b, i) => {
+    b.disabled = true;
+    if (i === correctPos) b.classList.add('correct');
+    else if (i === chosen && chosen !== correctPos) b.classList.add('wrong');
+    else b.classList.add('dimmed');
+  });
+
+  const isCorrect = chosen === correctPos;
+  if (isCorrect) {
+    score++;
+    if (q.category === 'myth') mythScore++;
+    else typeScore++;
+  }
+
+  document.getElementById('scoreDisplay').textContent = score;
+
+  const fb = document.getElementById('feedback');
+  fb.innerHTML = (isCorrect
+    ? `<strong style="color:var(--correct)">✓ Correct!</strong> — `
+    : `<strong style="color:var(--wrong)">✗ Not quite.</strong> — `)
+    + q.explanation;
+  fb.classList.add('show');
+  document.getElementById('nextBtn').classList.add('show');
+  document.getElementById('nextBtn').textContent = current < shuffled.length - 1 ? 'Next →' : 'See Results →';
+}
+
+function nextQuestion() {
+  current++;
+  if (current >= shuffled.length) {
+    showResults();
+  } else {
+    loadQuestion();
+  }
+}
+
+function showResults() {
+  document.getElementById('quiz').style.display = 'none';
+  const results = document.getElementById('results');
+  results.classList.add('show');
+
+  document.getElementById('finalScore').textContent = score;
+  document.getElementById('mythScore').textContent = mythScore;
+  document.getElementById('typeScore').textContent = typeScore;
+  document.getElementById('pctScore').textContent = Math.round((score / shuffled.length) * 100) + '%';
+
+  let title, desc;
+  if (score <= 4) {
+    title = "The Unwitting Believer";
+    desc = "You've absorbed many common misconceptions about procrastination — which is completely normal. Most of these myths are culturally reinforced. The good news: you now have the foundation to see procrastination with much clearer eyes. <strong>Consider exploring the psychology of emotional regulation</strong> for deeper insight.";
+  } else if (score <= 8) {
+    title = "The Informed Skeptic";
+    desc = "You have a solid understanding of procrastination, debunking many myths and identifying several types. A few nuances still escaped you — especially in distinguishing the more subtle procrastinator types. <strong>You're well on your way</strong> to becoming genuinely knowledgeable about this deeply human behavior.";
+  } else if (score <= 11) {
+    title = "The Sharp Analyst";
+    desc = "Impressive! You clearly understand that procrastination is far more complex than laziness. You can identify its flavors and see through common myths with confidence. <strong>Your understanding puts you ahead of most</strong> — both in recognizing procrastination patterns in yourself and in others.";
+  } else {
+    title = "The Procrastination Expert";
+    desc = "A perfect score! You have a sophisticated, nuanced understanding of procrastination psychology — its emotional roots, its many forms, and the myths that obscure it. <strong>You're rare.</strong> This level of self-knowledge is one of the most powerful tools for behavioral change.";
+  }
+
+  document.getElementById('resultTitle').textContent = title;
+  document.getElementById('resultDesc').innerHTML = desc;
+}
+
+function restartQuiz() {
+  document.getElementById('results').classList.remove('show');
+  document.getElementById('intro').style.display = 'block';
+}
+</script>
+</body>
+</html>
